@@ -7,14 +7,14 @@
 ### 客户端：自动上报IP（全自动化）
 
 **Windows用户（中国）：**
-1. 下载：[auto_report_ip_client.bat](https://raw.githubusercontent.com/YOUR_USERNAME/YOUR_REPO/main/auto_report_ip_client.bat)
+1. 下载：[auto_report_ip_client.bat](https://raw.githubusercontent.com/ermingpei/relay/main/auto_report_ip_client.bat)
 2. 双击运行
 3. 完成！（自动安装定时任务，每小时检查IP变化）
 
 **Mac/Linux用户：**
 ```bash
 # 下载并安装
-curl -O https://raw.githubusercontent.com/YOUR_USERNAME/YOUR_REPO/main/auto_report_ip_client.sh
+curl -O https://raw.githubusercontent.com/ermingpei/relay/main/auto_report_ip_client.sh
 chmod +x auto_report_ip_client.sh
 ./auto_report_ip_client.sh install
 ```
