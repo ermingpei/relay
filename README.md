@@ -4,41 +4,45 @@
 
 ## 🚀 快速开始
 
-### 客户端：添加IP到白名单
+### 客户端：自动上报IP（全自动化）
 
-**Mac/Linux:**
+**Windows用户（中国）：**
+1. 下载：[auto_report_ip_client.bat](https://raw.githubusercontent.com/YOUR_USERNAME/YOUR_REPO/main/auto_report_ip_client.bat)
+2. 双击运行
+3. 完成！（自动安装定时任务，每小时检查IP变化）
+
+**Mac/Linux用户：**
 ```bash
+# 下载并安装
 curl -O https://raw.githubusercontent.com/YOUR_USERNAME/YOUR_REPO/main/auto_report_ip_client.sh
 chmod +x auto_report_ip_client.sh
-./auto_report_ip_client.sh
+./auto_report_ip_client.sh install
 ```
 
-**Windows:**
-1. 下载 [auto_report_ip_client.bat](https://raw.githubusercontent.com/YOUR_USERNAME/YOUR_REPO/main/auto_report_ip_client.bat)
-2. 右键编辑，修改SECRET_KEY
-3. 双击运行
+**✨ 新功能：**
+- ✅ 自动检测IP变化
+- ✅ 自动上报到服务器
+- ✅ 自动添加到白名单
+- ✅ 定时任务（每小时检查）
+- ✅ 开机自动运行
+- ✅ 无需手动操作！
 
-### 中国用户下载（Gitee镜像）
-
-**Mac/Linux:**
-```bash
-curl -O https://gitee.com/YOUR_USERNAME/YOUR_REPO/raw/main/auto_report_ip_client.sh
-chmod +x auto_report_ip_client.sh
-./auto_report_ip_client.sh
-```
-
-**Windows:**
-下载：https://gitee.com/YOUR_USERNAME/YOUR_REPO/raw/main/auto_report_ip_client.bat
+详细说明：[客户端下载指南](客户端下载.md)
 
 ---
 
 ## 📋 功能特性
 
-### 1. IP自动上报系统
-- ✅ 客户端无需gcloud SDK
-- ✅ 客户端无需GCP权限
-- ✅ 只需要一个密钥
-- ✅ 实时响应
+### 1. IP自动上报系统（全自动化）
+- ✅ 客户端自动检测IP变化
+- ✅ 自动上报到服务器API
+- ✅ 服务器自动添加到GCP防火墙
+- ✅ 定时任务（每小时检查）
+- ✅ 开机自动运行
+- ✅ 只在IP变化时上报（节省资源）
+- ✅ 无需gcloud SDK
+- ✅ 无需GCP权限
+- ✅ 密钥验证，安全可靠
 
 ### 2. 服务器管理
 - 防火墙管理
@@ -56,9 +60,10 @@ chmod +x auto_report_ip_client.sh
 
 ## 📚 文档
 
-- [IP自动上报使用指南](IP自动上报-使用指南.md)
-- [RustDesk配置说明](RustDesk配置说明.md)
-- [故障排除指南](TROUBLESHOOTING_GUIDE.md)
+- [客户端下载指南](客户端下载.md) - 详细的下载和使用说明
+- [完整部署指南](自动IP上报-完整部署指南.md) - 服务器端部署和配置
+- [RustDesk配置说明](RustDesk配置说明.md) - RustDesk客户端配置
+- [故障排除指南](TROUBLESHOOTING_GUIDE.md) - 常见问题解决
 
 ---
 
