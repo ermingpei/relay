@@ -1,0 +1,27 @@
+# 敏感信息
+*.pem
+*.key
+*_key.txt
+*密钥*.txt
+*Key*.txt
+.rustdesk_current_ip
+
+# 日志文件
+*.log
+rustdesk_auto_ip.log
+
+# 临时文件
+*.tmp
+*.bak
+*~
+.DS_Store
+
+# Python
+__pycache__/
+*.py[cod]
+*.so
+.Python
+
+# 个人配置
+.env
+.env.local
