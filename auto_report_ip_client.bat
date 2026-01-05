@@ -28,36 +28,44 @@ echo.
 REM Try multiple sources - China-friendly
 SET CURRENT_IP=
 
-REM Source 1: ipify.org (works in China sometimes)
-for /f %%i in ('powershell -Command "try { (Invoke-WebRequest -Uri 'https://api.ipify.org' -UseBasicParsing -TimeoutSec 5).Content.Trim() } catch { '' }"') do set CURRENT_IP=%%i
+REM Source 1: ipify.org (returns plain IP)
+for /f %%i in ('powershell -Command "try { $ip = (Invoke-WebRequest -Uri 'https://api.ipify.org' -UseBasicParsing -TimeoutSec 5).Content.Trim(); if($ip -match '^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$') { $ip } else { '' } } catch { '' }"') do set CURRENT_IP=%%i
 
-REM Source 2: ip.sb (China-friendly)
+REM Source 2: ip.sb (returns plain IP)
 if "!CURRENT_IP!"=="" (
     echo Trying backup source 1...
-    for /f %%i in ('powershell -Command "try { (Invoke-WebRequest -Uri 'https://api.ip.sb/ip' -UseBasicParsing -TimeoutSec 5).Content.Trim() } catch { '' }"') do set CURRENT_IP=%%i
+    for /f %%i in ('powershell -Command "try { $ip = (Invoke-WebRequest -Uri 'https://api.ip.sb/ip' -UseBasicParsing -TimeoutSec 5).Content.Trim(); if($ip -match '^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$') { $ip } else { '' } } catch { '' }"') do set CURRENT_IP=%%i
 )
 
-REM Source 3: ipinfo.io (works in China)
+REM Source 3: ipinfo.io (returns plain IP)
 if "!CURRENT_IP!"=="" (
     echo Trying backup source 2...
-    for /f %%i in ('powershell -Command "try { (Invoke-WebRequest -Uri 'https://ipinfo.io/ip' -UseBasicParsing -TimeoutSec 5).Content.Trim() } catch { '' }"') do set CURRENT_IP=%%i
+    for /f %%i in ('powershell -Command "try { $ip = (Invoke-WebRequest -Uri 'https://ipinfo.io/ip' -UseBasicParsing -TimeoutSec 5).Content.Trim(); if($ip -match '^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$') { $ip } else { '' } } catch { '' }"') do set CURRENT_IP=%%i
 )
 
-REM Source 4: myip.ipip.net (China service)
+REM Source 4: myip.ipip.net (returns text with IP)
 if "!CURRENT_IP!"=="" (
     echo Trying backup source 3...
-    for /f %%i in ('powershell -Command "try { (Invoke-WebRequest -Uri 'https://myip.ipip.net' -UseBasicParsing -TimeoutSec 5).Content -replace '.*IP: ([0-9.]+).*','$1' } catch { '' }"') do set CURRENT_IP=%%i
+    for /f %%i in ('powershell -Command "try { $content = (Invoke-WebRequest -Uri 'https://myip.ipip.net' -UseBasicParsing -TimeoutSec 5).Content; if($content -match '(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})') { $matches[1] } else { '' } } catch { '' }"') do set CURRENT_IP=%%i
 )
 
-REM Source 5: cip.cc (China service)
+REM Source 5: cip.cc (returns text with IP)
 if "!CURRENT_IP!"=="" (
     echo Trying backup source 4...
-    for /f %%i in ('powershell -Command "try { (Invoke-WebRequest -Uri 'https://cip.cc' -UseBasicParsing -TimeoutSec 5).Content -match 'IP\s*:\s*([0-9.]+)'; if($matches) { $matches[1] } else { '' } } catch { '' }"') do set CURRENT_IP=%%i
+    for /f %%i in ('powershell -Command "try { $content = (Invoke-WebRequest -Uri 'https://cip.cc' -UseBasicParsing -TimeoutSec 5).Content; if($content -match 'IP\s*:\s*(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})') { $matches[1] } else { '' } } catch { '' }"') do set CURRENT_IP=%%i
 )
 
 if "!CURRENT_IP!"=="" (
-    echo [ERROR] Cannot get public IP
+    echo [ERROR] Cannot get public IP from any source
     echo [%date% %time%] ERROR: Cannot get IP >> "%LOG_FILE%"
+    goto END
+)
+
+REM Validate IP format
+echo !CURRENT_IP! | findstr /R "^[0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*$" >nul
+if %ERRORLEVEL% NEQ 0 (
+    echo [ERROR] Invalid IP format: !CURRENT_IP!
+    echo [%date% %time%] ERROR: Invalid IP format >> "%LOG_FILE%"
     goto END
 )
 
