@@ -1,10 +1,11 @@
 @echo off
+setlocal enabledelayedexpansion
 chcp 65001 >nul 2>&1
-title RustDesk IP自动上报工具
+title RustDesk IP Auto Report
 
 REM ============================================
-REM RustDesk IP自动上报工具 - 全自动版
-REM 双击运行即可自动上报IP到服务器
+REM RustDesk IP Auto Report Tool
+REM Double-click to run
 REM ============================================
 
 SET SERVER_URL=http://34.96.199.184:8888/update-ip
@@ -15,75 +16,110 @@ SET TASK_NAME=RustDesk Auto IP Report
 
 echo.
 echo ============================================
-echo    RustDesk IP自动上报工具
-echo    电脑名称: %COMPUTERNAME%
+echo    RustDesk IP Auto Report
+echo    Computer: %COMPUTERNAME%
 echo ============================================
 echo.
 
-REM 步骤1: 立即上报IP
-echo [步骤1] 正在上报IP到服务器...
+REM Step 1: Get public IP
+echo [Step 1] Getting public IP...
 echo.
 
-REM 获取公网IP
-echo 正在获取公网IP...
-for /f %%i in ('powershell -Command "(Invoke-WebRequest -Uri 'https://api.ipify.org' -UseBasicParsing -TimeoutSec 10).Content"') do set CURRENT_IP=%%i
+REM Try multiple sources for China compatibility
+SET CURRENT_IP=
 
-if "%CURRENT_IP%"=="" (
-    echo [错误] 无法获取公网IP，请检查网络连接
+REM Source 1: ipify.org
+for /f %%i in ('powershell -Command "try { (Invoke-WebRequest -Uri 'https://api.ipify.org' -UseBasicParsing -TimeoutSec 5).Content } catch { '' }"') do set CURRENT_IP=%%i
+
+REM Source 2: icanhazip.com
+if "!CURRENT_IP!"=="" (
+    echo Trying backup source 1...
+    for /f %%i in ('powershell -Command "try { (Invoke-WebRequest -Uri 'https://icanhazip.com' -UseBasicParsing -TimeoutSec 5).Content.Trim() } catch { '' }"') do set CURRENT_IP=%%i
+)
+
+REM Source 3: ifconfig.me
+if "!CURRENT_IP!"=="" (
+    echo Trying backup source 2...
+    for /f %%i in ('powershell -Command "try { (Invoke-WebRequest -Uri 'https://ifconfig.me' -UseBasicParsing -TimeoutSec 5).Content.Trim() } catch { '' }"') do set CURRENT_IP=%%i
+)
+
+REM Source 4: ipinfo.io
+if "!CURRENT_IP!"=="" (
+    echo Trying backup source 3...
+    for /f %%i in ('powershell -Command "try { (Invoke-WebRequest -Uri 'https://ipinfo.io/ip' -UseBasicParsing -TimeoutSec 5).Content.Trim() } catch { '' }"') do set CURRENT_IP=%%i
+)
+
+if "!CURRENT_IP!"=="" (
+    echo [ERROR] Cannot get public IP
+    echo [%date% %time%] ERROR: Cannot get IP >> "%LOG_FILE%"
     goto END
 )
 
-echo 当前公网IP: %CURRENT_IP%
+echo Current IP: !CURRENT_IP!
 echo.
 
-REM 检查IP是否变化
+REM Step 2: Check if IP changed
+echo [Step 2] Checking IP change...
+echo.
+
+set IP_CHANGED=1
 if exist "%IP_CACHE_FILE%" (
     set /p LAST_IP=<"%IP_CACHE_FILE%"
-    if "%CURRENT_IP%"=="!LAST_IP!" (
-        echo [提示] IP未变化，跳过上报
+    if "!CURRENT_IP!"=="!LAST_IP!" (
+        echo [INFO] IP unchanged, skip report
+        echo [%date% %time%] IP unchanged: !CURRENT_IP! >> "%LOG_FILE%"
+        set IP_CHANGED=0
         goto CHECK_TASK
+    ) else (
+        echo [DETECT] IP changed: !LAST_IP! -^> !CURRENT_IP!
     )
+) else (
+    echo [DETECT] First run, need to report
 )
 
-REM 发送IP到服务器
-echo 正在发送IP到服务器...
-powershell -Command "$body = @{ip='%CURRENT_IP%';device_id='%COMPUTERNAME%';secret='%SECRET_KEY%'} | ConvertTo-Json; try { $response = Invoke-RestMethod -Uri '%SERVER_URL%' -Method Post -Body $body -ContentType 'application/json' -TimeoutSec 15; if ($response.status -eq 'success') { Write-Host '[成功] IP已上报到服务器！' -ForegroundColor Green; exit 0 } else { Write-Host '[失败] 服务器返回错误: ' $response.error -ForegroundColor Red; exit 1 } } catch { Write-Host '[失败] 无法连接服务器: ' $_.Exception.Message -ForegroundColor Red; exit 1 }"
+echo.
+
+REM Step 3: Report IP to server
+echo [Step 3] Reporting IP to server...
+echo.
+
+powershell -Command "$body = @{ip='!CURRENT_IP!';device_id='%COMPUTERNAME%';secret='%SECRET_KEY%'} | ConvertTo-Json; try { $response = Invoke-RestMethod -Uri '%SERVER_URL%' -Method Post -Body $body -ContentType 'application/json' -TimeoutSec 15; if ($response.status -eq 'success') { Write-Host '[SUCCESS] IP reported!' -ForegroundColor Green; exit 0 } else { Write-Host '[FAILED] Server error: ' $response.error -ForegroundColor Red; exit 1 } } catch { Write-Host '[FAILED] Cannot connect: ' $_.Exception.Message -ForegroundColor Red; exit 1 }"
 
 if %ERRORLEVEL% EQU 0 (
-    echo %CURRENT_IP%> "%IP_CACHE_FILE%"
-    echo [%date% %time%] IP上报成功: %CURRENT_IP% >> "%LOG_FILE%"
+    echo !CURRENT_IP!> "%IP_CACHE_FILE%"
+    echo [%date% %time%] IP reported: !CURRENT_IP! >> "%LOG_FILE%"
     echo.
-    echo ✅ IP已成功添加到服务器白名单！
+    echo [OK] IP added to whitelist!
 ) else (
-    echo [%date% %time%] IP上报失败 >> "%LOG_FILE%"
+    echo [%date% %time%] Report failed >> "%LOG_FILE%"
     echo.
-    echo ❌ 上报失败，请检查：
-    echo    1. 服务器是否运行了 auto_update_ip_server.sh start
-    echo    2. 网络连接是否正常
-    echo    3. 防火墙是否允许访问端口8888
+    echo [ERROR] Report failed, please check:
+    echo    1. Server running: auto_update_ip_server.sh start
+    echo    2. Network connection OK
+    echo    3. Firewall allows port 8888
     goto END
 )
 
 echo.
 
 :CHECK_TASK
-REM 步骤2: 检查并安装定时任务
-echo [步骤2] 检查定时任务...
+REM Step 4: Check scheduled task
+echo [Step 4] Checking scheduled task...
 echo.
 
 schtasks /query /tn "%TASK_NAME%" >nul 2>&1
 if %ERRORLEVEL% EQU 0 (
-    echo [已安装] 定时任务已存在，每小时自动检查IP变化
+    echo [OK] Scheduled task exists
 ) else (
-    echo 正在安装定时任务...
+    echo Installing scheduled task...
     
-    REM 创建定时任务XML配置
+    REM Create task XML
     set TASK_XML=%TEMP%\rustdesk_task.xml
     
     echo ^<?xml version="1.0" encoding="UTF-16"?^> > "%TASK_XML%"
     echo ^<Task version="1.2" xmlns="http://schemas.microsoft.com/windows/2004/02/mit/task"^> >> "%TASK_XML%"
     echo   ^<RegistrationInfo^> >> "%TASK_XML%"
-    echo     ^<Description^>RustDesk自动IP上报 - 每小时检查IP变化^</Description^> >> "%TASK_XML%"
+    echo     ^<Description^>RustDesk Auto IP Report - Check every hour^</Description^> >> "%TASK_XML%"
     echo   ^</RegistrationInfo^> >> "%TASK_XML%"
     echo   ^<Triggers^> >> "%TASK_XML%"
     echo     ^<CalendarTrigger^> >> "%TASK_XML%"
@@ -126,31 +162,31 @@ if %ERRORLEVEL% EQU 0 (
     schtasks /create /tn "%TASK_NAME%" /xml "%TASK_XML%" /f >nul 2>&1
     
     if %ERRORLEVEL% EQU 0 (
-        echo [成功] 定时任务已安装
-        echo        - 每小时自动检查IP变化
-        echo        - 开机时自动运行
-        echo        - 只在IP变化时上报
-        echo [%date% %time%] 定时任务已安装 >> "%LOG_FILE%"
+        echo [SUCCESS] Task installed
+        echo    - Check every hour
+        echo    - Run on startup
+        echo    - Only report when IP changes
+        echo [%date% %time%] Task installed >> "%LOG_FILE%"
         del "%TASK_XML%" >nul 2>&1
     ) else (
-        echo [提示] 需要管理员权限才能安装定时任务
-        echo        请右键此文件，选择"以管理员身份运行"
+        echo [INFO] Need admin rights to install task
+        echo        Right-click and "Run as administrator"
         del "%TASK_XML%" >nul 2>&1
     )
 )
 
 echo.
 echo ============================================
-echo    完成！
-echo    - 当前IP: %CURRENT_IP%
-echo    - 定时任务: 每小时自动检查
-echo    - 日志文件: %LOG_FILE%
+echo    Done!
+echo    - Current IP: !CURRENT_IP!
+echo    - Task: Check every hour
+echo    - Log: %LOG_FILE%
 echo ============================================
 echo.
 
 :END
-REM 如果不是静默模式，暂停显示结果
+REM Pause if not silent mode
 if not "%1"=="/silent" (
-    echo 按任意键关闭窗口...
+    echo Press any key to close...
     pause >nul
 )

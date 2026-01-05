@@ -43,6 +43,16 @@ chmod +x auto_report_ip_client.sh
 - ✅ 无需gcloud SDK
 - ✅ 无需GCP权限
 - ✅ 密钥验证，安全可靠
+- ✅ **多源IP获取（中国可用）**
+- ✅ **完全英文界面（无乱码）**
+
+### IP获取源（自动切换）
+1. api.ipify.org（主要）
+2. icanhazip.com（备用1）
+3. ifconfig.me（备用2）
+4. ipinfo.io/ip（备用3）
+
+如果一个源无法访问，自动尝试下一个，确保在中国也能正常使用。
 
 ### 2. 服务器管理
 - 防火墙管理
