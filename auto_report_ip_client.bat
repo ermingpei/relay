@@ -25,28 +25,34 @@ REM Step 1: Get public IP
 echo [Step 1] Getting public IP...
 echo.
 
-REM Try multiple sources for China compatibility
+REM Try multiple sources - China-friendly
 SET CURRENT_IP=
 
-REM Source 1: ipify.org
-for /f %%i in ('powershell -Command "try { (Invoke-WebRequest -Uri 'https://api.ipify.org' -UseBasicParsing -TimeoutSec 5).Content } catch { '' }"') do set CURRENT_IP=%%i
+REM Source 1: ipify.org (works in China sometimes)
+for /f %%i in ('powershell -Command "try { (Invoke-WebRequest -Uri 'https://api.ipify.org' -UseBasicParsing -TimeoutSec 5).Content.Trim() } catch { '' }"') do set CURRENT_IP=%%i
 
-REM Source 2: icanhazip.com
+REM Source 2: ip.sb (China-friendly)
 if "!CURRENT_IP!"=="" (
     echo Trying backup source 1...
-    for /f %%i in ('powershell -Command "try { (Invoke-WebRequest -Uri 'https://icanhazip.com' -UseBasicParsing -TimeoutSec 5).Content.Trim() } catch { '' }"') do set CURRENT_IP=%%i
+    for /f %%i in ('powershell -Command "try { (Invoke-WebRequest -Uri 'https://api.ip.sb/ip' -UseBasicParsing -TimeoutSec 5).Content.Trim() } catch { '' }"') do set CURRENT_IP=%%i
 )
 
-REM Source 3: ifconfig.me
+REM Source 3: ipinfo.io (works in China)
 if "!CURRENT_IP!"=="" (
     echo Trying backup source 2...
-    for /f %%i in ('powershell -Command "try { (Invoke-WebRequest -Uri 'https://ifconfig.me' -UseBasicParsing -TimeoutSec 5).Content.Trim() } catch { '' }"') do set CURRENT_IP=%%i
+    for /f %%i in ('powershell -Command "try { (Invoke-WebRequest -Uri 'https://ipinfo.io/ip' -UseBasicParsing -TimeoutSec 5).Content.Trim() } catch { '' }"') do set CURRENT_IP=%%i
 )
 
-REM Source 4: ipinfo.io
+REM Source 4: myip.ipip.net (China service)
 if "!CURRENT_IP!"=="" (
     echo Trying backup source 3...
-    for /f %%i in ('powershell -Command "try { (Invoke-WebRequest -Uri 'https://ipinfo.io/ip' -UseBasicParsing -TimeoutSec 5).Content.Trim() } catch { '' }"') do set CURRENT_IP=%%i
+    for /f %%i in ('powershell -Command "try { (Invoke-WebRequest -Uri 'https://myip.ipip.net' -UseBasicParsing -TimeoutSec 5).Content -replace '.*IP: ([0-9.]+).*','$1' } catch { '' }"') do set CURRENT_IP=%%i
+)
+
+REM Source 5: cip.cc (China service)
+if "!CURRENT_IP!"=="" (
+    echo Trying backup source 4...
+    for /f %%i in ('powershell -Command "try { (Invoke-WebRequest -Uri 'https://cip.cc' -UseBasicParsing -TimeoutSec 5).Content -match 'IP\s*:\s*([0-9.]+)'; if($matches) { $matches[1] } else { '' } } catch { '' }"') do set CURRENT_IP=%%i
 )
 
 if "!CURRENT_IP!"=="" (
