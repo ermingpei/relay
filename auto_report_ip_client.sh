@@ -30,7 +30,7 @@ report_ip() {
         return 1
     fi
     
-    echo "当前公网IP: $CURRENT_IP"
+    echo "✓ 当前公网IP: $CURRENT_IP"
     echo ""
     
     # 检查IP是否变化
@@ -59,17 +59,19 @@ report_ip() {
         else
             ERROR=$(echo "$RESPONSE" | grep -o '"error":"[^"]*"' | cut -d'"' -f4)
             echo "❌ 服务器返回错误: $ERROR"
-            log_message "ERROR: Server error: $ERROR"
+            echo "   当前IP: $CURRENT_IP"
+            log_message "ERROR: Server error: $ERROR (IP: $CURRENT_IP)"
             return 1
         fi
     else
         echo "❌ 无法连接服务器"
+        echo "   当前IP: $CURRENT_IP"
         echo ""
         echo "请检查："
         echo "  1. 服务器是否运行了 auto_update_ip_server.sh start"
         echo "  2. 网络连接是否正常"
         echo "  3. 防火墙是否允许访问端口8888"
-        log_message "ERROR: Failed to connect to server"
+        log_message "ERROR: Failed to connect to server (IP: $CURRENT_IP)"
         return 1
     fi
 }

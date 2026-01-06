@@ -106,9 +106,12 @@ if %ERRORLEVEL% EQU 0 (
     echo.
     echo [OK] IP added to whitelist!
 ) else (
-    echo [%date% %time%] Report failed >> "%LOG_FILE%"
+    echo [%date% %time%] Report failed: !CURRENT_IP! >> "%LOG_FILE%"
     echo.
-    echo [ERROR] Report failed, please check:
+    echo [ERROR] Report failed
+    echo    Current IP: !CURRENT_IP!
+    echo.
+    echo Please check:
     echo    1. Server running: auto_update_ip_server.sh start
     echo    2. Network connection OK
     echo    3. Firewall allows port 8888
