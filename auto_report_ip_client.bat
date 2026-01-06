@@ -61,10 +61,11 @@ if "!CURRENT_IP!"=="" (
     goto END
 )
 
-REM Validate IP format
-echo !CURRENT_IP! | findstr /R "^[0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*$" >nul
-if %ERRORLEVEL% NEQ 0 (
-    echo [ERROR] Invalid IP format: !CURRENT_IP!
+REM Trim whitespace and validate IP format using PowerShell
+for /f %%i in ('powershell -Command "$ip = '!CURRENT_IP!'.Trim(); if($ip -match '^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$') { $ip } else { '' }"') do set CURRENT_IP=%%i
+
+if "!CURRENT_IP!"=="" (
+    echo [ERROR] Invalid IP format after validation
     echo [%date% %time%] ERROR: Invalid IP format >> "%LOG_FILE%"
     goto END
 )
