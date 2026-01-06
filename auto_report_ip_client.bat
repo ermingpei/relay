@@ -98,17 +98,13 @@ REM Step 3: Report IP to server
 echo [Step 3] Reporting IP to server...
 echo.
 
-powershell -Command "$body = @{ip='!CURRENT_IP!';device_id='%COMPUTERNAME%';secret='%SECRET_KEY%'} | ConvertTo-Json; try { $response = Invoke-RestMethod -Uri '%SERVER_URL%' -Method Post -Body $body -ContentType 'application/json' -TimeoutSec 15; if ($response.status -eq 'success') { Write-Host '[SUCCESS] IP reported!' -ForegroundColor Green; exit 0 } else { Write-Host '[FAILED] Server error: ' $response.error -ForegroundColor Red; exit 1 } } catch { Write-Host '[FAILED] Cannot connect: ' $_.Exception.Message -ForegroundColor Red; exit 1 }"
+powershell -Command "$body = @{ip='!CURRENT_IP!';device_id='%COMPUTERNAME%';secret='%SECRET_KEY%'} | ConvertTo-Json; try { $response = Invoke-RestMethod -Uri '%SERVER_URL%' -Method Post -Body $body -ContentType 'application/json' -TimeoutSec 15; if ($response.status -eq 'success') { Write-Host '[SUCCESS] IP reported!' -ForegroundColor Green; exit 0 } else { Write-Host '[ERROR] Server error: ' $response.error -ForegroundColor Red; exit 1 } } catch { Write-Host '[ERROR] Cannot connect: ' $_.Exception.Message -ForegroundColor Red; exit 1 }"
 
 if %ERRORLEVEL% EQU 0 (
     echo !CURRENT_IP!> "%IP_CACHE_FILE%"
     echo [%date% %time%] IP reported: !CURRENT_IP! >> "%LOG_FILE%"
-    echo.
-    echo [OK] IP added to whitelist!
 ) else (
     echo [%date% %time%] Report failed: !CURRENT_IP! >> "%LOG_FILE%"
-    echo.
-    echo [ERROR] Report failed
     echo    Current IP: !CURRENT_IP!
     echo.
     echo Please check:
