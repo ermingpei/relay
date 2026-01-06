@@ -23,6 +23,7 @@ import re
 import ipaddress
 import signal
 import sys
+import time
 from datetime import datetime
 from threading import Lock
 
@@ -35,7 +36,12 @@ firewall_lock = Lock()
 
 # 请求计数器（防止滥用）
 request_counter = {}
-MAX_REQUESTS_PER_IP = 100  # 每个IP每小时最多100次请求
+MAX_REQUESTS_PER_IP = 5  # 每个IP每小时最多5次请求
+
+# 失败锁定（防止暴力破解）
+failed_attempts = {}  # {ip: [timestamp1, timestamp2, ...]}
+LOCKOUT_THRESHOLD = 5  # 5次失败后锁定
+LOCKOUT_DURATION = 900  # 锁定15分钟（秒）
 
 def signal_handler(sig, frame):
     log_message("🛑 Received shutdown signal, stopping gracefully...")
@@ -85,6 +91,34 @@ def check_rate_limit(client_ip):
         del request_counter[k]
     
     return request_counter[key] <= MAX_REQUESTS_PER_IP
+
+def check_lockout(client_ip):
+    """检查IP是否被锁定"""
+    if client_ip not in failed_attempts:
+        return False
+    
+    # 清理过期的失败记录
+    current_time = time.time()
+    failed_attempts[client_ip] = [
+        t for t in failed_attempts[client_ip] 
+        if current_time - t < LOCKOUT_DURATION
+    ]
+    
+    # 如果最近有5次或以上失败，则锁定
+    if len(failed_attempts[client_ip]) >= LOCKOUT_THRESHOLD:
+        return True
+    
+    return False
+
+def record_failed_attempt(client_ip):
+    """记录失败尝试"""
+    if client_ip not in failed_attempts:
+        failed_attempts[client_ip] = []
+    failed_attempts[client_ip].append(time.time())
+    
+    # 只保留最近的失败记录
+    if len(failed_attempts[client_ip]) > LOCKOUT_THRESHOLD:
+        failed_attempts[client_ip] = failed_attempts[client_ip][-LOCKOUT_THRESHOLD:]
 
 def add_ip_to_firewall(ip, device_id):
     """添加IP到防火墙白名单（带锁保护）"""
@@ -170,6 +204,12 @@ class IPUpdateHandler(http.server.BaseHTTPRequestHandler):
             return
         
         try:
+            # 检查IP是否被锁定
+            if check_lockout(client_ip):
+                log_message(f"🔒 Locked out IP attempted access: {client_ip}")
+                self.send_json_response(403, {'error': 'Too many failed attempts. Try again later.'})
+                return
+            
             # 检查请求频率限制
             if not check_rate_limit(client_ip):
                 log_message(f"⚠️  Rate limit exceeded for {client_ip}")
@@ -208,6 +248,9 @@ class IPUpdateHandler(http.server.BaseHTTPRequestHandler):
             # 验证密钥
             if not secret or secret != SECRET_KEY:
                 log_message(f"❌ Invalid secret key from {client_ip} (device: {device_id})")
+                record_failed_attempt(client_ip)
+                remaining = LOCKOUT_THRESHOLD - len(failed_attempts.get(client_ip, []))
+                log_message(f"⚠️  Failed attempts for {client_ip}: {remaining} attempts remaining before lockout")
                 self.send_json_response(403, {'error': 'Invalid secret key'})
                 return
             
